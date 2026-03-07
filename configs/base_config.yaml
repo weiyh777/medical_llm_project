@@ -1,0 +1,54 @@
+# 基础配置文件
+
+# 模型配置
+model:
+  base_model: "Qwen/Qwen2.5-1.5B-Instruct"
+  trust_remote_code: true
+  torch_dtype: "bfloat16"
+  device_map: "auto"
+
+# LoRA配置
+lora:
+  use_peft: true
+  lora_rank: 16
+  lora_alpha: 32
+  lora_dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+# 量化配置
+quantization:
+  load_in_4bit: false
+  load_in_8bit: false
+  bnb_4bit_compute_dtype: "bfloat16"
+  bnb_4bit_quant_type: "nf4"
+
+# 训练通用配置
+training:
+  seed: 42
+  bf16: true
+  gradient_checkpointing: true
+  report_to: "tensorboard"
+  logging_steps: 10
+  save_total_limit: 3
+
+# 数据路径
+data_paths:
+  medical_pretrain_dir: "../medical/pretrain"
+  medical_sft_dir: "../medical/finetune"
+  medical_reward_dir: "../medical/reward"
+  ceval_dir: "../ceval-exam"
+
+# 输出路径
+output_paths:
+  pt_model: "./outputs/pt_model"
+  sft_model: "./outputs/sft_model"
+  rm_model: "./outputs/rm_model"
+  ppo_model: "./outputs/ppo_model"
+  grpo_model: "./outputs/grpo_model"

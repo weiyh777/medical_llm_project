@@ -1,0 +1,49 @@
+Looking in indexes: https://pypi.tuna.tsinghua.edu.cn/simple
+Requirement already satisfied: transformers in /root/miniconda3/envs/medical/lib/python3.10/site-packages (4.28.1)
+Collecting transformers
+  Downloading https://pypi.tuna.tsinghua.edu.cn/packages/52/f3/ac976fa8e305c9e49772527e09fbdc27cc6831b8a2f6b6063406626be5dd/transformers-5.0.0-py3-none-any.whl (10.1 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 10.1/10.1 MB 9.4 MB/s  0:00:01
+Requirement already satisfied: filelock in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from transformers) (3.20.3)
+Collecting huggingface-hub<2.0,>=1.3.0 (from transformers)
+  Downloading https://pypi.tuna.tsinghua.edu.cn/packages/55/07/3d0c34c345043c6a398a5882e196b2220dc5861adfa18322448b90908f26/huggingface_hub-1.3.4-py3-none-any.whl (536 kB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 536.6/536.6 kB 5.5 MB/s  0:00:00
+Requirement already satisfied: numpy>=1.17 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from transformers) (2.2.6)
+Requirement already satisfied: packaging>=20.0 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from transformers) (25.0)
+Requirement already satisfied: pyyaml>=5.1 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from transformers) (6.0.3)
+Requirement already satisfied: regex!=2019.12.17 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from transformers) (2026.1.15)
+Collecting tokenizers<=0.23.0,>=0.22.0 (from transformers)
+  Downloading https://pypi.tuna.tsinghua.edu.cn/packages/2e/76/932be4b50ef6ccedf9d3c6639b056a967a86258c6d9200643f01269211ca/tokenizers-0.22.2-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (3.3 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 19.5 MB/s  0:00:00
+Collecting typer-slim (from transformers)
+  Downloading https://pypi.tuna.tsinghua.edu.cn/packages/c8/0a/4aca634faf693e33004796b6cee0ae2e1dba375a800c16ab8d3eff4bb800/typer_slim-0.21.1-py3-none-any.whl (47 kB)
+Requirement already satisfied: safetensors>=0.4.3 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from transformers) (0.7.0)
+Requirement already satisfied: tqdm>=4.27 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from transformers) (4.67.1)
+Requirement already satisfied: fsspec>=2023.5.0 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from huggingface-hub<2.0,>=1.3.0->transformers) (2025.10.0)
+Requirement already satisfied: hf-xet<2.0.0,>=1.2.0 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from huggingface-hub<2.0,>=1.3.0->transformers) (1.2.0)
+Requirement already satisfied: httpx<1,>=0.23.0 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from huggingface-hub<2.0,>=1.3.0->transformers) (0.28.1)
+Collecting shellingham (from huggingface-hub<2.0,>=1.3.0->transformers)
+  Downloading https://pypi.tuna.tsinghua.edu.cn/packages/e0/f9/0595336914c5619e5f28a1fb793285925a8cd4b432c9da0a987836c7f822/shellingham-1.5.4-py2.py3-none-any.whl (9.8 kB)
+Requirement already satisfied: typing-extensions>=4.1.0 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from huggingface-hub<2.0,>=1.3.0->transformers) (4.15.0)
+Requirement already satisfied: anyio in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from httpx<1,>=0.23.0->huggingface-hub<2.0,>=1.3.0->transformers) (4.12.1)
+Requirement already satisfied: certifi in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from httpx<1,>=0.23.0->huggingface-hub<2.0,>=1.3.0->transformers) (2026.1.4)
+Requirement already satisfied: httpcore==1.* in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from httpx<1,>=0.23.0->huggingface-hub<2.0,>=1.3.0->transformers) (1.0.9)
+Requirement already satisfied: idna in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from httpx<1,>=0.23.0->huggingface-hub<2.0,>=1.3.0->transformers) (3.11)
+Requirement already satisfied: h11>=0.16 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from httpcore==1.*->httpx<1,>=0.23.0->huggingface-hub<2.0,>=1.3.0->transformers) (0.16.0)
+Requirement already satisfied: exceptiongroup>=1.0.2 in /root/miniconda3/envs/medical/lib/python3.10/site-packages (from anyio->httpx<1,>=0.23.0->huggingface-hub<2.0,>=1.3.0->transformers) (1.3.1)
+Collecting click>=8.0.0 (from typer-slim->transformers)
+  Downloading https://pypi.tuna.tsinghua.edu.cn/packages/98/78/01c019cdb5d6498122777c1a43056ebb3ebfeef2076d9d026bfe15583b2b/click-8.3.1-py3-none-any.whl (108 kB)
+Installing collected packages: shellingham, click, typer-slim, huggingface-hub, tokenizers, transformers
+  Attempting uninstall: huggingface-hub
+    Found existing installation: huggingface-hub 0.36.0
+    Uninstalling huggingface-hub-0.36.0:
+      Successfully uninstalled huggingface-hub-0.36.0
+  Attempting uninstall: tokenizers
+    Found existing installation: tokenizers 0.12.1
+    Uninstalling tokenizers-0.12.1:
+      Successfully uninstalled tokenizers-0.12.1
+  Attempting uninstall: transformers
+    Found existing installation: transformers 4.28.1
+    Uninstalling transformers-4.28.1:
+      Successfully uninstalled transformers-4.28.1
+
+Successfully installed click-8.3.1 huggingface-hub-1.3.4 shellingham-1.5.4 tokenizers-0.22.2 transformers-5.0.0 typer-slim-0.21.1
