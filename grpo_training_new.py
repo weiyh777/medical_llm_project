@@ -74,15 +74,29 @@ def extract_answer(text):
 
 
 def medical_content_reward(completions, answer, **kwargs):
-    """Reward function that checks semantic similarity with ground truth."""
+    """Reward function that measures character-level string similarity between the model's answer and the ground truth.
+
+    Algorithm (difflib.SequenceMatcher.ratio):
+      1. Extract text inside <answer>...</answer> tags from the generated completion.
+         If no tags are found, use the full completion text as the prediction.
+      2. Run difflib.SequenceMatcher(None, pred, ground_truth) to find all
+         non-overlapping matching character blocks between the two strings using
+         the Ratcliff/Obershelp algorithm (longest common subsequence search).
+      3. Compute the similarity ratio:
+             ratio = 2 * M / T
+         where M = total number of matched (overlapping) characters across all
+         matching blocks, and T = total character count of both strings combined.
+      4. Return the ratio directly as the reward. Value range: [0.0, 1.0].
+         0.0 means no characters in common; 1.0 means the strings are identical.
+    """
     contents = [completion[0]["content"] for completion in completions]
     rewards = []
     for content, sol in zip(contents, answer):
-        # Extract the assistant's answer
+        # Extract the assistant's answer from <answer> tags
         match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL)
         pred = match.group(1).strip() if match else content.strip()
-        
-        # Calculate overlap (Simple Jaccard/Ratio)
+
+        # Compute character-level similarity ratio: 2*M / T
         matcher = difflib.SequenceMatcher(None, pred, sol)
         rewards.append(matcher.ratio())
     return rewards
