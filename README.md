@@ -129,6 +129,97 @@ bash scripts/run_full_pipeline.sh
 | Qwen2.5-7B | 7B | ~24GB | 高性能 |
 | Llama-3.2-3B | 3B | ~16GB | 英文较好 |
 
+## GRPO 训练框架详解
+
+### 核心训练框架：TRL (Transformer Reinforcement Learning)
+
+`grpo_training_new.py` 使用 **Hugging Face TRL** 作为 GRPO 强化学习训练的核心框架，具体通过以下组件实现：
+
+```python
+from trl import GRPOConfig, GRPOTrainer, ModelConfig, TrlParser
+```
+
+| TRL 组件 | 作用 |
+|---------|------|
+| `GRPOTrainer` | 核心训练器，实现 GRPO (Group Relative Policy Optimization) 算法，管理训练循环、生成采样和策略更新 |
+| `GRPOConfig` | GRPO 训练超参数配置，包括 `beta`（KL 散度惩罚系数）、`num_generations`（每个 prompt 的采样数量）、`max_prompt_length`、`max_completion_length` 等 |
+| `ModelConfig` | 模型配置，包含 LoRA 参数（`lora_r`、`lora_alpha`、`lora_dropout`、`lora_target_modules`）以及量化选项（`load_in_4bit`、`load_in_8bit`） |
+| `TrlParser` | 参数解析器，统一解析 `ModelConfig`、`ScriptArguments` 和 `GRPOConfig` 三组参数 |
+
+### 配套依赖框架
+
+代码中涉及的完整框架栈如下：
+
+#### 1. Hugging Face Transformers（模型与 Tokenizer 加载）
+```python
+from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
+from transformers.trainer_utils import get_last_checkpoint
+from transformers.integrations import is_deepspeed_zero3_enabled
+```
+- `AutoModelForCausalLM` 加载因果语言模型作为策略模型（policy model）
+- `AutoTokenizer` 加载对应 tokenizer
+- `BitsAndBytesConfig` 配置 4-bit/8-bit 量化（NF4 格式，双重量化）
+
+#### 2. PEFT（参数高效微调 / LoRA）
+```python
+from peft import LoraConfig, TaskType, get_peft_model
+```
+- 通过 LoRA 仅训练少量低秩矩阵，大幅减少显存占用
+- 支持 QLoRA（量化 + LoRA），通过 `--qlora` 开关控制
+- 可配置目标模块（`q_proj`、`k_proj`、`v_proj`、`o_proj` 等 attention/FFN 层）
+- `find_all_linear_names()` 函数可自动发现模型中所有线性层用于 LoRA
+
+#### 3. PyTorch（深度学习基础框架）
+```python
+import torch
+```
+- 默认使用 `bfloat16` 精度训练（`torch.bfloat16`）
+- 通过 `torch.cuda.device_count()` 检测 GPU 数量
+- 通过 `torch.cuda.get_device_properties()` 获取 GPU 显存，自动分配内存
+
+#### 4. 分布式训练支持
+- **PyTorch DDP (DistributedDataParallel)**：通过 `torchrun --nproc_per_node` 启动多卡训练，按 `WORLD_SIZE` 自动调整 `gradient_accumulation_steps`
+- **DeepSpeed ZeRO**：通过 `is_deepspeed_zero3_enabled()` 检测是否启用了 ZeRO-3。当同时开启量化（4-bit/8-bit）与 ZeRO-3 时，代码会抛出 `ValueError` 终止训练；仅开启 QLoRA 而未启用量化时则输出警告。
+
+#### 5. Hugging Face Datasets（数据加载）
+```python
+from datasets import load_dataset
+```
+- 支持从 HuggingFace Hub 加载数据集（`dataset_name`）
+- 支持从本地 JSON 目录加载（`train_file_dir`）
+
+### GRPO 奖励函数设计
+
+`GRPOTrainer` 接收多个奖励函数列表，本项目配置了三个奖励函数：
+
+```python
+trainer = GRPOTrainer(
+    reward_funcs=[
+        medical_content_reward,   # 内容相似度奖励
+        ppl_penalty_reward,       # 困惑度惩罚奖励
+        format_reward             # 格式合规奖励
+    ],
+    ...
+)
+```
+
+| 奖励函数 | 实现方式 | 作用 |
+|---------|---------|------|
+| `medical_content_reward` | `difflib.SequenceMatcher` 计算与标准答案的字符级相似度（Ratio） | 鼓励回答内容与参考答案相近 |
+| `ppl_penalty_reward` | 用策略模型自身计算生成文本的 PPL，`reward = -min(log(max(PPL, 1.0)), 5.0)`，取值范围 [-5.0, 0] | 惩罚困惑度高（语言不流畅）的生成 |
+| `format_reward` | 正则匹配 `<think>.*</think><answer>.*</answer>` 格式 | 强制模型遵循「先思考后作答」的输出格式，奖励值为 0 或 1 |
+
+### 训练流程总结
+
+```
+torchrun (DDP 多卡)
+    └── GRPOTrainer (TRL)
+            ├── AutoModelForCausalLM (Transformers) + LoRA (PEFT)
+            ├── 量化支持: BitsAndBytes (4-bit NF4 / 8-bit)
+            ├── 分布式: DeepSpeed ZeRO-2 兼容
+            └── 奖励函数: medical_content + ppl_penalty + format
+```
+
 ## 技术细节
 
 - 使用 **LoRA/QLoRA** 进行高效微调
