@@ -209,6 +209,82 @@ trainer = GRPOTrainer(
 | `ppl_penalty_reward` | 用策略模型自身计算生成文本的 PPL，`reward = -min(log(max(PPL, 1.0)), 5.0)`，取值范围 [-5.0, 0] | 惩罚困惑度高（语言不流畅）的生成 |
 | `format_reward` | 正则匹配 `<think>.*</think><answer>.*</answer>` 格式 | 强制模型遵循「先思考后作答」的输出格式，奖励值为 0 或 1 |
 
+#### `medical_content_reward` 内容相似度计算详解
+
+##### 算法来源
+
+使用 Python 标准库 `difflib.SequenceMatcher` 实现，底层采用 **Ratcliff/Obershelp 算法**——通过递归寻找最长公共子序列（Longest Common Substring）来测量两段字符串的相似程度。
+
+##### 计算步骤
+
+**第一步：提取预测答案**
+
+```python
+match = re.search(r'<answer>(.*?)</answer>', content, re.DOTALL)
+pred = match.group(1).strip() if match else content.strip()
+```
+
+从模型的完整输出中提取 `<answer>…</answer>` 标签内的文本作为预测答案 `pred`。若未找到标签，则将整段输出作为预测答案。
+
+**第二步：构建匹配器**
+
+```python
+matcher = difflib.SequenceMatcher(None, pred, sol)
+```
+
+`SequenceMatcher(None, a, b)` 第一个参数为"垃圾字符判定函数"，传 `None` 表示不过滤任何字符，对全部字符一视同仁地进行匹配。
+
+**第三步：寻找所有匹配块**
+
+`SequenceMatcher` 内部通过递归调用"寻找最长公共子串"来确定所有不重叠的匹配块（matching blocks）。每个匹配块是 `(i, j, n)` 三元组，表示 `pred[i:i+n]` 与 `sol[j:j+n]` 完全相同，共 `n` 个字符匹配。
+
+**第四步：计算相似度比值**
+
+```
+ratio = 2 × M / T
+```
+
+| 符号 | 含义 |
+|-----|------|
+| `M` | 所有匹配块中匹配字符数之和（`sum(n for _, _, n in matching_blocks)`） |
+| `T` | 两个字符串的字符总数（`len(pred) + len(sol)`） |
+| `ratio` | 取值范围 [0.0, 1.0]，1.0 表示完全一致，0.0 表示无任何公共字符 |
+
+##### 具体示例
+
+```python
+import difflib
+
+pred = "患者应服用阿莫西林，每日三次，连续七天"
+sol  = "建议患者服用阿莫西林，每天三次，疗程七天"
+
+matcher = difflib.SequenceMatcher(None, pred, sol)
+
+# 查看匹配块（每个 Match 对象包含字段 a=pred起始下标, b=sol起始下标, size=匹配字符数）
+for block in matcher.get_matching_blocks():
+    if block.size > 0:
+        print(block, '->', repr(pred[block.a: block.a + block.size]))
+# 实际输出（Match 是 difflib 返回的具名元组）：
+# Match(a=0, b=2, size=2)   -> '患者'
+# Match(a=3, b=4, size=8)   -> '服用阿莫西林，每'
+# Match(a=12, b=13, size=3) -> '三次，'
+# Match(a=17, b=18, size=2) -> '七天'
+
+# M = 2+8+3+2 = 15，T = len(pred)+len(sol) = 19+20 = 39
+ratio = matcher.ratio()  # 2*15/39 ≈ 0.7692
+print(f"similarity ratio = {ratio:.4f}")  # 输出：similarity ratio = 0.7692
+```
+
+##### 特性与局限
+
+| 特性 | 说明 |
+|-----|------|
+| **字符级匹配** | 逐字符比较，对同义词替换、语序调整等语义等价情况不敏感 |
+| **顺序感知** | 相对于集合相似度（Jaccard），SequenceMatcher 感知字符顺序，能区分语序不同的两段文本 |
+| **计算轻量** | 不依赖任何模型，纯 CPU 计算，延迟极低 |
+| **语言无关** | 对中文、英文、混合文本均适用 |
+| **语义盲区** | "心脏病"与"冠心病"在字符层面相似度低，但医学语义接近，该指标无法捕捉此类等价关系 |
+
 ### 训练流程总结
 
 ```
